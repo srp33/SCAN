@@ -1,0 +1,25 @@
+#!/bin/bash
+
+gse=$1
+
+if [ -z "$gse" ]
+then
+  echo No GSE identifier was specified.
+fi
+
+cd raw
+
+echo Downloading $gse from GEO
+curl http://www.ncbi.nlm.nih.gov/geosuppl/?acc=$gse -o $gse.tar
+
+if [ -f $gse.tar ]
+then
+  tar -xvf $gse.tar
+
+  for f in *.gz
+  do
+    gunzip -f $f
+  done
+
+  rm $gse.tar
+fi

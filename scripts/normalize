@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Preliminary steps:
+# -----------------------------------
+# 1. CEL files should be placed in the "raw" directory.
+# 2. python (http://python.org) needs to be installed.
+
+mkdir -p normalized
+
+for inFile in raw/*
+do
+  scripts/normalizeFile $inFile $1
+done

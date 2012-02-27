@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ ! -f library/HG-U133A.probe.tab ]
+then
+  curl -O http://www.bioinformatics.org/scan/HelperFiles/SCAN_library.tar.gz
+
+  if [ -f SCAN_library.tar.gz ]
+  then
+    tar -zxvf SCAN_library.tar.gz
+    rm -f SCAN_library.tar.gz
+  fi
+fi

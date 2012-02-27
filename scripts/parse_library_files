@@ -1,0 +1,150 @@
+#!/bin/bash
+
+rawLibraryDir=../AffyLibraryFiles
+
+tmpFile1=$rawLibraryDir/temp1
+tmpFile2=$rawLibraryDir/temp2
+tmpFile3=$rawLibraryDir/temp3
+tmpFile4=$rawLibraryDir/temp4
+
+function parseHGLibraryFile {
+  rawProbeTabFile=$rawLibraryDir/$1
+  rawProbeTabFileName=`basename $rawProbeTabFile`
+  modProbeTabFile=library/${rawProbeTabFileName/probe_tab/probe.tab}
+  probesetProbeFile=library/${rawProbeTabFileName/probe_tab/probeset_probe.tab}
+  brainArrayMappingFile=$rawLibraryDir/$2
+  brainArrayProbesetProbeFile=library/${rawProbeTabFileName/probe_tab/BrainArray_probeset_probe.tab}
+
+  # Remove header row
+  tail -n +2 $rawProbeTabFile > $tmpFile1
+
+  # This inserts an ID column
+  python code/InsertColumnViaExpression.py $tmpFile1 "x[1] + '_' + x[2]" $tmpFile2
+
+  # This inserts a probe-type column
+  python code/InsertColumnViaExpression.py $tmpFile2 "'M'" $tmpFile1
+
+  # This keeps only the columns we care about in order to make the file smaller
+  python code/SelectColumns.py $tmpFile1 "6,1,2,4,7" $modProbeTabFile
+
+  if [ -f $brainArrayMappingFile ]
+  then
+    # This maps probesets/genes to probe IDs for BrainArray mappings
+    echo Mapping probesets to probes using $brainArrayMappingFile
+    python code/InsertColumnViaExpression.py $brainArrayMappingFile "x[4] + '_' + x[5]" $tmpFile3
+    tail -n +2 $tmpFile3 > $tmpFile4
+    python code/SelectColumns.py $tmpFile4 0,7 $brainArrayProbesetProbeFile
+  fi
+
+  # This maps probesets/genes to probe IDs for Affy default mappings
+  echo Mapping probesets to probes using Affy defaults
+  python code/MapKeysToValues.py $tmpFile1 1 0 6 $probesetProbeFile
+}
+
+function parseSTLibraryFile {
+  rawProbeTabFile=$rawLibraryDir/$1
+  rawProbeTabFileName=`basename $rawProbeTabFile`
+  modProbeTabFile=library/$rawProbeTabFileName
+  probesetProbeFile=library/${rawProbeTabFileName/probe/probeset_probe}
+  brainArrayMappingFile=$rawLibraryDir/$2
+  brainArrayProbesetProbeFile=library/${rawProbeTabFileName/probe/BrainArray_probeset_probe}
+
+  # Remove header
+  python code/FilterFile.py $rawProbeTabFile "'Probe' not in x[0]" 0 $tmpFile1
+
+  # Insert an ID column
+  python code/InsertColumnViaExpression.py $tmpFile1 "x[2] + '_' + x[3]" $tmpFile2
+
+  # Insert a probe-type column
+  python code/InsertColumnViaExpression.py $tmpFile2 "['C', 'M']['main' in x[11]]" $tmpFile3
+
+  # This keeps only the columns we care about in order to make the file smaller
+  python code/SelectColumns.py $tmpFile3 "12,2,3,9,13" $tmpFile4
+
+  # This removes any probes that are shorter than 25
+  python code/FilterFile.py $tmpFile4 "len(x[3])==25" 1 $modProbeTabFile
+
+  if [ -f $brainArrayMappingFile ]
+  then
+    # This maps probesets/genes to probe IDs for BrainArray mappings
+    python code/InsertColumnViaExpression.py $brainArrayMappingFile "x[4] + '_' + x[5]" $tmpFile1
+    tail -n +2 $tmpFile1 > $tmpFile2
+    python code/SelectColumns.py $tmpFile2 0,7 $brainArrayProbesetProbeFile
+  fi
+
+  # This maps probesets to probes
+  python code/MapKeysToValues.py $tmpFile3 0 1 12 $probesetProbeFile
+}
+
+function parseGlueLibraryFile {
+  rawProbeTabFile=$rawLibraryDir/hGlue2_0.r1.pgf.tbl
+  clfFile=$rawLibraryDir/hGlue2_0.r1.clf
+  modProbeTabFile=library/hGlue_2_0_v1.probe.tab
+  probesetProbeFile=${modProbeTabFile/probe/probeset_probe}
+  tcMpsFile=$rawLibraryDir/hGlue2_0.r1.TC.mps
+  tcProbesetFile=${modProbeTabFile/probe/tc_probeset}
+  tcProbeFile=${modProbeTabFile/probe/tc_probe}
+
+  # Remove the header
+  tail -n +2 $rawProbeTabFile > $tmpFile1
+
+  # This removes control/background probes from probe-tab file
+  python code/FilterFile.py $tmpFile1 "len(x[10])==25" 1 $tmpFile2
+
+  # Map probe positions to probe tab file
+  tail -n +11 $clfFile > $tmpFile3
+  tail -n +2 $tmpFile2 > $tmpFile4
+
+  # Sort and merge files
+  sort -k1 -n $tmpFile3 > $tmpFile1
+  sort -k6 -n $tmpFile4 > $tmpFile2
+  python code/InnerJoinSortedFiles.py $tmpFile1 $tmpFile2 0 5 $tmpFile3 True
+
+  # Insert an ID column
+  python code/InsertColumnViaExpression.py $tmpFile3 "x[1] + '_' + x[2]" $tmpFile4
+
+  # Insert a probe-type column
+  python code/InsertColumnViaExpression.py $tmpFile4 "['C', 'M']['main->' in x[4]]" $tmpFile3
+
+  # This maps probesets to probes
+  python code/MapKeysToValues.py $tmpFile3 0 3 13 $probesetProbeFile
+
+  # This keeps only the columns we care about in order to make the file smaller
+  python code/SelectColumns.py $tmpFile3 13,1,2,12,14 $modProbeTabFile
+
+  # Create TC/probeset mapping file
+  tail -n +2 $tcMpsFile > $tmpFile1
+  python code/SelectColumns.py $tmpFile1 0,1 $tmpFile2
+  python code/SplitMultiValuedEntriesIntoMultipleRows.py $tmpFile2 1 " " $tcProbesetFile
+
+  # Create TC/probe mapping file
+  python code/InnerJoin.py $tcProbesetFile $probesetProbeFile 1 0 $tcProbeFile False
+}
+
+parseHGLibraryFile HG-Focus.probe_tab HGFocus_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG-U133A.probe_tab HGU133A_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG-U133A_2.probe_tab HGU133A2_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG-U133B.probe_tab HGU133B_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG-U133_Plus_2.probe_tab HGU133Plus2_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG-U219.probe_tab HGU219_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG_U95A.probe_tab HGU95A_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG_U95Av2.probe_tab HGU95Av2_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG_U95B.probe_tab HGU95B_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG_U95C.probe_tab HGU95C_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG_U95D.probe_tab HGU95D_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HG_U95E.probe_tab HGU95E_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HT_HG-U133A.probe_tab HTHGU133A_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HT_HG-U133B.probe_tab HTHGU133B_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile HT_HG-U133_Plus_PM.probe_tab HTHGU133PlusPM_Hs_ENTREZG_mapping.txt
+parseHGLibraryFile PrimeView.probe_tab NA
+
+# This is for the Latin_Square data
+parseHGLibraryFile HG-U133A_tag.probe_tab NA
+
+parseSTLibraryFile HuGene-1_0-st-v1.probe.tab HuGene10stv1_Hs_ENTREZG_mapping.txt
+parseSTLibraryFile HuGene-1_1-st-v1.probe.tab HuGene11stv1_Hs_ENTREZG_mapping.txt
+parseSTLibraryFile HuEx-1_0-st-v2.probe.tab HuEx10stv2_Hs_ENTREZG_mapping.txt
+
+parseGlueLibraryFile
+
+rm -f $tmpFile1 $tmpFile2 $tmpFile3 $tmpFile4

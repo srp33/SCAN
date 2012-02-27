@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# This script is only designed to run on UNIX-like environments
+# The curl utility must also be installed (should be on most UNIX-like environments)
+# C compiler must also be installed.
+
+if [ ! -f apt/bin/apt-cel-convert ]
+then
+  cd apt
+
+  zipFile=apt-1.14.3.1-src.zip
+  curl -O http://www.bioinformatics.org/scan/HelperFiles/$zipFile
+
+  unzip $zipFile
+
+  cd apt-1.14.3.1-src/sdk
+  ./configure --without-cppunit
+  make
+  cd ../../
+
+  mkdir -p bin
+  cp -r apt-1.14.3.1-src/sdk/output/*/bin/apt-cel-convert bin/
+  cp -r apt-1.14.3.1-src/*.txt .
+  rm -rf apt-1.14.3.1-src
+
+  rm $zipFile
+fi

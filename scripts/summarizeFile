@@ -1,0 +1,60 @@
+#!/bin/bash
+
+celFile="$1"
+
+# These are optional
+dataColumnIndex=$2
+outFileSuffix="$3"
+geneProbeMapFile="$4"
+summarizeFunction=$5
+
+identifier="`basename $celFile`"
+identifier="${identifier/\.CEL/}"
+normFile="normalized/$identifier.txt"
+platform=`python code/PrintAffyPlatform.py $celFile`
+
+if [ -z "$dataColumnIndex" ]
+then
+  dataColumnIndex=1
+fi
+
+if [ -z "$outFileSuffix" ]
+then
+  outFileSuffix=.expr.txt
+fi
+
+affyGeneProbeMapFile=library/$platform.probeset_probe.tab
+brainArrayGeneProbeMapFile=library/$platform.BrainArray_probeset_probe.tab
+
+if [ -z "$geneProbeMapFile" ]
+then
+  if [ -f $brainArrayGeneProbeMapFile ]
+  then
+    geneProbeMapFile=$brainArrayGeneProbeMapFile
+  else
+    geneProbeMapFile=$affyGeneProbeMapFile
+  fi
+else
+  if [ "$geneProbeMapFile" == "Affy" ]
+  then
+    geneProbeMapFile=$affyGeneProbeMapFile
+  fi
+  if [ "$geneProbeMapFile" == "BrainArray" ]
+  then
+    geneProbeMapFile=$brainArrayGeneProbeMapFile
+  fi
+fi
+
+if [ -z "$summarizeFunction" ]
+then
+  summarizeFunction=calculateTrimmedMean
+fi
+
+summFile="summarized/$identifier${outFileSuffix}"
+
+if [ ! -f "$summFile" ]
+then
+  python code/SummarizeData.py "$normFile" $dataColumnIndex $geneProbeMapFile 3 $summarizeFunction "$summFile"
+else
+  echo "$normFile" has already been summarized to "$summFile"
+fi

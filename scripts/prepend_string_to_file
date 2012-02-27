@@ -1,0 +1,8 @@
+tmpFile1=`./scripts/maketempfile`
+tmpFile2=`./scripts/maketempfile`
+
+echo -e "$1" > $tmpFile1
+cat $tmpFile1 $2 > $tmpFile2
+mv $tmpFile2 $2
+
+rm $tmpFile1

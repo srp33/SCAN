@@ -1,0 +1,8 @@
+#!/bin/bash
+
+mkdir -p summarized
+
+for inFile in raw/*.CEL
+do
+  scripts/summarizeFile $inFile "$1" "$2" "$3" "$4"
+done

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+mkdir -p matrices
+
+outFile="$1"
+
+tmpFile1=`scripts/maketempfile`
+tmpFile2=`scripts/maketempfile`
+
+rm -f "$outFile"
+
+header=
+
+for f in summarized/*
+do
+  echo $f
+  if [ ! -f "$outFile" ]
+  then
+    cp $f "$outFile"
+  else
+    cp $f $tmpFile1
+    python code/InnerJoin.py "$outFile" $tmpFile1 0 0 $tmpFile2 True
+    mv $tmpFile2 "$outFile"
+  fi
+
+  fileDescription=`basename $f`
+  header=`echo -e "${header}\t$fileDescription"`
+done
+
+scripts/prepend_string_to_file "$header" "$outFile"
+
+rm -f $tmpFile1 $tmpFile2

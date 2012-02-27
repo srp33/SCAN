@@ -1,0 +1,8 @@
+#!/bin/bash
+
+fileName=`openssl rand -base64 30`
+fileName=${fileName///}
+filePath=/tmp/$fileName
+
+touch $filePath
+echo $filePath

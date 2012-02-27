@@ -1,0 +1,18 @@
+#!/bin/bash
+
+inFile="$1"
+
+identifier="`basename $inFile`"
+identifier="${identifier/\.CEL/}"
+normFile="normalized/$identifier.txt"
+platform=`python code/PrintAffyPlatform.py $inFile`
+
+if [ ! -f "$normFile" ]
+then
+  echo Normalizing "$inFile"
+  echo Affy platform is $platform
+
+  python code/normalizeAffyArray.py "$inFile" library/$platform.probe.tab "$normFile" $2
+else
+  echo "$inFile" has already been normalized to "$normFile"
+fi

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+apt/bin/apt-cel-convert --in-place --format xda raw/*.CEL
+rm -f apt-cel-convert.log

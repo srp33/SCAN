@@ -1,7 +1,1 @@
 scripts/commit
-library/*
-apt/*
-raw/*
-normalized/*
-summarized/*
-matrices/*

@@ -18,3 +18,7 @@ Before you can process CEL files with SCAN, you need to complete the preliminary
   ./scripts/get_library_files
 
 After these steps have been completed, CEL files can be placed in the "raw" directory and then normalized by executing the "go" script.
+
+----------------------------------------------------------
+
+Two-color (long-oligo) arrays and RNA-sequencing data can be processed with the R (http://www.r-project.org) script in code/CalculateProbCodes.R. Transcript lengths and GC content proportions can be specified optionally.

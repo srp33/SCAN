@@ -22,3 +22,7 @@ After these steps have been completed, CEL files can be placed in the "raw" dire
 ----------------------------------------------------------
 
 Two-color (long-oligo) arrays and RNA-sequencing data can be processed with the R (http://www.r-project.org) script in code/CalculateProbCodes.R. Transcript lengths and GC content proportions can be specified optionally.
+
+----------------------------------------------------------
+
+Please contact Stephen Piccolo (stephen.piccolo@hsc.utah.edu) with questions.
